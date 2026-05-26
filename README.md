@@ -2,30 +2,26 @@
 
 **Fast phone-to-computer file transfer via QR code — without a cloud account.**
 
-FX - fileXperience is a small self-hosted PHP tool that lets you transfer a file from your phone to your computer quickly:
+FX - fileXperience is a small self-hosted PHP tool that lets you transfer a file from your phone to your computer quickly and temporarily.
 
-1. Open FX - fileXperience on your computer.
-2. Scan the QR code with your phone.
-3. Upload a file from your phone.
-4. Download it on your computer.
-5. The file and token are deleted automatically.
+You open the tool on your computer, scan a QR code with your phone, upload a file, and download it on your computer. After the download, the file and token are deleted automatically.
 
-The project is designed for simple web hosting environments and does not require a database.
+No database is required.
 
 ---
 
 ## Features
 
 - QR-code based file transfer
-- No user cloud account required
+- No cloud account required
+- No database required
 - Short-lived one-time upload tokens
-- Automatic deletion after download
-- Automatic new QR/session after download
+- Automatic file deletion after download
 - Cron cleanup for abandoned uploads
 - Optional password protection
 - Optional IP / DNS whitelist
 - Setup wizard on first launch
-- Local language file for interface texts
+- English and German interface support
 - Local QR scanner library, no external CDN required
 - Apache / LiteSpeed `.htaccess` protection
 - Example Nginx configuration included
@@ -35,7 +31,7 @@ The project is designed for simple web hosting environments and does not require
 
 ## Typical use case
 
-You are working on your computer and need a photo, PDF, screenshot or video from your phone.
+You are working on your computer and need a photo, screenshot, PDF or video from your phone.
 
 Instead of sending it through email, messenger apps or cloud storage:
 
@@ -43,8 +39,7 @@ Instead of sending it through email, messenger apps or cloud storage:
 2. Scan the displayed QR code with your phone.
 3. Select the file on your phone.
 4. Download it on your computer.
-
-After the download, the file is removed from the server and a new QR session can be created automatically.
+5. The file is removed from the server after download.
 
 ---
 
@@ -63,8 +58,6 @@ Phone uploads a file using the token
         ↓
 Computer detects the upload via polling
         ↓
-Old QR code disappears
-        ↓
 Computer downloads the file
         ↓
 File and token are deleted
@@ -77,11 +70,11 @@ A new QR code/session is created
 ## Requirements
 
 - PHP 8.0 or newer
-- Composer, or a prepared `vendor/` folder
+- Composer, or a prepared `vendor/` directory
 - Webspace with PHP support
 - Write permissions for:
   - `uploads/`
-  - `tokens.json`
+  - `tokens.json`, if the file exists
   - the project directory during first setup, so `config.inc.php` can be created
 - HTTPS is strongly recommended, especially for camera access and password-protected usage
 
@@ -114,7 +107,7 @@ cd /path/to/fx-filexperience
 composer install
 ```
 
-Composer installs the QR code generation library into the `vendor/` directory.
+Composer installs the PHP QR code generation library into the `vendor/` directory.
 
 ### 3. Make uploads writable
 
@@ -153,15 +146,13 @@ After setup, the configuration is written to:
 config.inc.php
 ```
 
+Do not publish this file.
+
 ---
 
 ## Installation without Composer on the webspace
 
 Some hosting providers do not allow Composer on the server. That is not a problem.
-
-You have three options.
-
----
 
 ### Option A: Run Composer locally and upload `vendor/`
 
@@ -175,15 +166,9 @@ If you have Composer installed on your own computer:
 composer install
 ```
 
-4. Upload the complete project folder to your webspace, including:
-
-```text
-vendor/
-```
+4. Upload the complete project folder to your webspace, including the generated `vendor/` directory.
 
 Your server does not need Composer in this case.
-
----
 
 ### Option B: Use a prepared release package
 
@@ -204,16 +189,27 @@ Then installation is simply:
 
 ---
 
-### Option C: Install dependencies elsewhere
+## Release packages
 
-You can also run Composer on another system, for example:
+The GitHub repository usually does not include the `vendor/` directory.
 
-- local computer
-- development server
-- staging server
-- temporary PHP environment
+For end users who cannot run Composer, provide a separate release ZIP that already includes:
 
-Then upload the generated `vendor/` directory together with the project files.
+```text
+vendor/
+```
+
+Do not include private runtime files in a release package, such as:
+
+```text
+config.inc.php
+tokens.json with real token data
+uploaded files
+cleanup.log
+.git/
+```
+
+You may include an empty `tokens.json`, or omit it if your installation handles a missing token file correctly.
 
 ---
 
@@ -514,7 +510,7 @@ Still, you should:
 - keep your installation private if possible
 - avoid very long token lifetimes
 - do not publish `config.inc.php`
-- do not publish `tokens.json`
+- do not publish `tokens.json` with real runtime data
 - do not publish uploaded files
 
 ---
@@ -564,7 +560,6 @@ fx-filexperience/
 ├── nginx.example.conf
 ├── poll.php
 ├── README.md
-├── tokens.json
 ├── tokens.php
 └── upload.php
 ```
@@ -587,33 +582,23 @@ vendor/
 
 ### `index.php`
 
-Main computer page.
-
-Creates QR sessions and waits for uploads.
+Main computer page. Creates QR sessions and waits for uploads.
 
 ### `upload.php`
 
-Phone upload page.
-
-Receives files through a valid token.
+Phone upload page. Receives files through a valid token.
 
 ### `poll.php`
 
-Long-polling endpoint.
-
-The computer page uses it to detect whether a file is ready.
+Long-polling endpoint. The computer page uses it to detect whether a file is ready.
 
 ### `download.php`
 
-Downloads the uploaded file.
-
-Deletes the file and token after delivery.
+Downloads the uploaded file. Deletes the file and token after delivery.
 
 ### `cron.php`
 
-Cleanup script.
-
-Deletes expired tokens and abandoned files.
+Cleanup script. Deletes expired tokens and abandoned files.
 
 ### `config.php`
 
@@ -621,49 +606,19 @@ Base configuration and default constants.
 
 ### `config.inc.php`
 
-Generated setup configuration.
-
-Do not commit this file.
+Generated setup configuration. Do not commit this file.
 
 ### `lang.php`
 
-Language texts.
-
-Contains arrays for supported languages, for example:
-
-```text
-en
-de
-```
-
-Each language contains a `language` key.
-
-Example concept:
-
-```text
-en.language = English
-de.language = Deutsch
-```
-
-Text keys are structured by area, such as:
-
-```text
-setup.title
-upload.subtitle
-main.waiting
-```
+Language texts. Contains arrays for supported languages, for example `en` and `de`.
 
 ### `tokens.php`
 
-Token management.
-
-Handles loading, saving, validating and deleting tokens.
+Token management. Handles loading, saving, validating and deleting tokens.
 
 ### `tokens.json`
 
-Token storage file.
-
-Do not publish real token data.
+Token storage file. Do not publish real token data.
 
 ### `assets/css/app.css`
 
@@ -712,47 +667,20 @@ Review and adapt it to your server setup.
 
 ---
 
-## GitHub usage
+## Repository notes
 
-Do not commit private runtime files.
-
-Your `.gitignore` should exclude at least:
+Do not commit private runtime files such as:
 
 ```text
 config.inc.php
 tokens.json
-vendor/
 uploads/*
 cleanup.log
 ```
 
-Usually you should keep this file:
+The `vendor/` directory is usually not committed to the repository.
 
-```text
-uploads/.htaccess
-```
-
-but ignore uploaded files inside the directory.
-
-A typical GitHub repository should include:
-
-```text
-README.md
-LICENSE
-composer.json
-composer.lock
-index.php
-upload.php
-download.php
-poll.php
-cron.php
-config.php
-auth.php
-tokens.php
-lang.php
-assets/
-nginx.example.conf
-```
+For end users without Composer, provide a separate release ZIP that includes `vendor/`.
 
 ---
 
@@ -766,7 +694,7 @@ The QR code displayed on the computer side is generated by:
 chillerlan/php-qrcode
 ```
 
-Install it with:
+Install dependencies with:
 
 ```bash
 composer install
@@ -830,7 +758,7 @@ Check:
 - cron secret is correct
 - `cron.php` is reachable by the cron service
 - `uploads/` is writable
-- `tokens.json` is writable
+- token storage is writable
 
 ---
 
@@ -846,72 +774,31 @@ https://example.com/fx-filexperience/cron.php?secret=YOUR_SECRET
 
 ---
 
-### GitHub Desktop says the folder is not a Git repository
-
-Create or add the folder as a repository in GitHub Desktop.
-
-The project folder should contain:
-
-```text
-README.md
-LICENSE
-index.php
-upload.php
-```
-
-Then create the initial commit and publish it to GitHub.
-
----
-
 ## Third-party libraries
 
 FX - fileXperience uses third-party open-source libraries.
 
-The project code itself is licensed under the MIT License, but third-party libraries are **not relicensed** under the MIT License of this project. They remain under their respective licenses.
+Composer dependencies are installed into the `vendor/` directory and retain their own license files and metadata.
 
-### Composer dependencies
+Included Composer packages may include, among others:
 
-PHP dependencies are installed into the `vendor/` directory by Composer.
+- `chillerlan/php-qrcode`
+- `chillerlan/php-settings-container`
+- Composer runtime files under `vendor/composer`
 
-Depending on the installed version, the release package may include Composer-managed packages such as:
-
-```text
-vendor/chillerlan/php-qrcode
-vendor/chillerlan/php-settings-container
-vendor/composer
-```
-
-These packages keep their own license files and metadata inside the `vendor/` directory. Do not remove these license files when creating or redistributing a release package.
-
-The QR code displayed on the computer page is generated through:
-
-```text
-chillerlan/php-qrcode
-```
-
-### jsQR
-
-The phone-side QR scanner uses `jsQR`.
-
-Location:
+The local QR scanner library `jsQR` is included under:
 
 ```text
 assets/vendor/jsqr/
 ```
 
-`jsQR` is licensed separately under the Apache License 2.0.
-
-See:
+`jsQR` is licensed separately under Apache-2.0. See:
 
 ```text
 assets/vendor/jsqr/LICENSE
 ```
 
-### Release packages
-
-The normal source repository may exclude the `vendor/` directory.
-
-Prepared release ZIP files for users without Composer may include `vendor/` so the project can be uploaded directly to a webspace. In that case, the third-party license files inside `vendor/` must stay included.
+Third-party libraries are not relicensed under the MIT license of this project. They remain under their respective licenses.
 
 ---
 
