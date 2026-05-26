@@ -1,57 +1,71 @@
 # FX - fileXperience
 
-**Fast phone-to-computer file transfer via QR code — without a cloud account.**
+**A tiny, shared-hosting-friendly file transfer tool for quick phone-to-computer uploads via QR code.**
 
-FX - fileXperience is a small self-hosted PHP tool that lets you transfer a file from your phone to your computer quickly and temporarily.
+FX - fileXperience is intentionally simple. It is not trying to replace peer-to-peer tools like PairDrop, Snapdrop or AirDrop. Instead, it is designed for ordinary PHP shared hosting environments where Node.js, Docker, WebSockets, databases or TURN servers are not available.
 
-You open the tool on your computer, scan a QR code with your phone, upload a file, and download it on your computer. After the download, the file and token are deleted automatically.
+Open the page on your computer, scan the QR code with your phone, upload a file, download it on your computer — and the temporary file is removed afterwards.
 
-No database is required. Works on shared hosting!
-
----
-
-## Features
-
-- QR-code based file transfer
-- No cloud account required
-- No database required
-- Short-lived one-time upload tokens
-- Automatic file deletion after download
-- Cron cleanup for abandoned uploads
-- Optional password protection
-- Optional IP / DNS whitelist
-- Setup wizard on first launch
-- English and German interface support
-- Local QR scanner library, no external CDN required
-- Apache / LiteSpeed `.htaccess` protection
-- Example Nginx configuration included
-- Works on shared hosting
-- MIT licensed project code
+No cloud account.  
+No database.  
+No Node.js.  
+No Docker.  
+No WebRTC or TURN server required.  
+Just PHP, Composer dependencies and a small setup wizard.
 
 ---
 
-## Typical use case
+## What FX - fileXperience is good for
 
-You are working on your computer and need a photo, screenshot, PDF or video from your phone.
+FX - fileXperience is useful when you want a quick, temporary, one-way transfer from your phone to your computer and you already have a simple PHP webspace.
 
-Instead of sending it through email, messenger apps or cloud storage:
+Typical examples:
 
-1. Open FX - fileXperience on your computer.
-2. Scan the displayed QR code with your phone.
-3. Select the file on your phone.
-4. Download it on your computer.
-5. The file is removed from the server after download.
+- send a photo from your phone to your computer
+- transfer a screenshot quickly
+- move a PDF, image or short video without using a messenger or cloud drive
+- provide yourself with a private browser-based upload drop-off page
+- run a small transfer tool on shared hosting
+
+---
+
+## What FX - fileXperience is not
+
+FX - fileXperience is not a full peer-to-peer file sharing platform.
+
+It does not try to provide:
+
+- local device discovery
+- browser-to-browser WebRTC transfer
+- AirDrop-like nearby sharing
+- multi-user file sharing rooms
+- permanent file storage
+- end-to-end encrypted peer-to-peer transfer
+
+Uploaded files are temporarily stored on your server until they are downloaded or removed by the cleanup job.
+
+If you need real peer-to-peer browser transfer, tools like PairDrop or Snapdrop may be a better fit. If you need a small PHP-based tool that works on common shared hosting, FX - fileXperience is built for that use case.
 
 ---
 
 ## How it works
 
+1. Open FX - fileXperience on your computer.
+2. A short-lived token is created.
+3. A QR code is shown.
+4. Scan the QR code with your phone.
+5. Upload a file from your phone.
+6. The computer detects the upload.
+7. Download the file.
+8. The file and token are deleted.
+9. A new QR code/session is created.
+
 ```text
 Computer opens index.php
         ↓
-A short-lived token is created
+Short-lived token is created
         ↓
-A QR code containing upload.php?token=... is shown
+QR code with upload.php?token=... is shown
         ↓
 Phone scans the QR code
         ↓
@@ -63,7 +77,132 @@ Computer downloads the file
         ↓
 File and token are deleted
         ↓
-A new QR code/session is created
+New QR code/session is created
+Features
+QR-code based phone-to-computer upload
+Designed for ordinary PHP shared hosting
+No database required
+No Node.js, Docker, WebSocket or TURN server required
+Short-lived one-time upload tokens
+Automatic deletion after download
+Cron cleanup for abandoned uploads
+Optional password protection
+Optional IP / DNS whitelist for creating new sessions
+Setup wizard on first launch
+Local language file for interface texts
+Local QR scanner library, no external CDN required
+Apache / LiteSpeed .htaccess protection
+Example Nginx configuration included
+MIT licensed project code
+
+Den Abschnitt würde ich **ganz oben** einsetzen und danach mit `## Requirements` bzw. Installation weitermachen.
+die features fehlen
+
+Stimmt — dann sollte der obere README-Teil so aussehen, inklusive Features:
+
+# FX - fileXperience
+
+**A tiny, shared-hosting-friendly file transfer tool for quick phone-to-computer uploads via QR code.**
+
+FX - fileXperience is intentionally simple. It is not trying to replace peer-to-peer tools like PairDrop, Snapdrop or AirDrop. Instead, it is designed for ordinary PHP shared hosting environments where Node.js, Docker, WebSockets, databases or TURN servers are not available.
+
+Open the page on your computer, scan the QR code with your phone, upload a file, download it on your computer — and the temporary file is removed afterwards.
+
+No cloud account.  
+No database.  
+No Node.js.  
+No Docker.  
+No WebRTC or TURN server required.  
+Just PHP, Composer dependencies and a small setup wizard.
+
+---
+
+## Features
+
+- QR-code based phone-to-computer upload
+- Designed for ordinary PHP shared hosting
+- No database required
+- No Node.js, Docker, WebSocket or TURN server required
+- Short-lived one-time upload tokens
+- Automatic deletion after download
+- Automatic new QR/session after download
+- Cron cleanup for abandoned uploads
+- Optional password protection
+- Optional IP / DNS whitelist for creating new sessions
+- Upload links work via short-lived tokens, even if the phone is on mobile data
+- Setup wizard on first launch
+- Base URL, token lifetime, cron secret and language configurable during setup
+- Local language file for interface texts
+- Local QR scanner library, no external CDN required
+- Apache / LiteSpeed `.htaccess` protection
+- Example Nginx configuration included
+- MIT licensed project code
+
+---
+
+## What FX - fileXperience is good for
+
+FX - fileXperience is useful when you want a quick, temporary, one-way transfer from your phone to your computer and you already have a simple PHP webspace.
+
+Typical examples:
+
+- send a photo from your phone to your computer
+- transfer a screenshot quickly
+- move a PDF, image or short video without using a messenger or cloud drive
+- provide yourself with a private browser-based upload drop-off page
+- run a small transfer tool on shared hosting
+
+---
+
+## What FX - fileXperience is not
+
+FX - fileXperience is not a full peer-to-peer file sharing platform.
+
+It does not try to provide:
+
+- local device discovery
+- browser-to-browser WebRTC transfer
+- AirDrop-like nearby sharing
+- multi-user file sharing rooms
+- permanent file storage
+- end-to-end encrypted peer-to-peer transfer
+
+Uploaded files are temporarily stored on your server until they are downloaded or removed by the cleanup job.
+
+If you need real peer-to-peer browser transfer, tools like PairDrop or Snapdrop may be a better fit. If you need a small PHP-based tool that works on common shared hosting, FX - fileXperience is built for that use case.
+
+---
+
+## How it works
+
+1. Open FX - fileXperience on your computer.
+2. A short-lived token is created.
+3. A QR code is shown.
+4. Scan the QR code with your phone.
+5. Upload a file from your phone.
+6. The computer detects the upload.
+7. Download the file.
+8. The file and token are deleted.
+9. A new QR code/session is created.
+
+```text
+Computer opens index.php
+        ↓
+Short-lived token is created
+        ↓
+QR code with upload.php?token=... is shown
+        ↓
+Phone scans the QR code
+        ↓
+Phone uploads a file using the token
+        ↓
+Computer detects the upload via polling
+        ↓
+Computer downloads the file
+        ↓
+File and token are deleted
+        ↓
+New QR code/session is created
 ```
 
 ---
