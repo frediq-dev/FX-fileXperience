@@ -554,6 +554,7 @@ fx-filexperience/
 ├── .htaccess
 ├── auth.php
 ├── composer.json
+├── composer.lock
 ├── config.php
 ├── cron.php
 ├── download.php
@@ -739,6 +740,7 @@ A typical GitHub repository should include:
 README.md
 LICENSE
 composer.json
+composer.lock
 index.php
 upload.php
 download.php
@@ -771,34 +773,6 @@ composer install
 ```
 
 If you cannot run Composer on your server, install dependencies elsewhere and upload the generated `vendor/` directory.
-
----
-
-## Third-party libraries
-
-### jsQR
-
-This project includes `jsQR` for QR scanning on the phone upload page.
-
-Location:
-
-```text
-assets/vendor/jsqr/
-```
-
-`jsQR` is licensed separately under the Apache License 2.0.
-
-See:
-
-```text
-assets/vendor/jsqr/LICENSE
-```
-
-### chillerlan/php-qrcode
-
-This project uses `chillerlan/php-qrcode` through Composer for QR code generation.
-
-See the package license information in Composer metadata.
 
 ---
 
@@ -886,6 +860,58 @@ upload.php
 ```
 
 Then create the initial commit and publish it to GitHub.
+
+---
+
+## Third-party libraries
+
+FX - fileXperience uses third-party open-source libraries.
+
+The project code itself is licensed under the MIT License, but third-party libraries are **not relicensed** under the MIT License of this project. They remain under their respective licenses.
+
+### Composer dependencies
+
+PHP dependencies are installed into the `vendor/` directory by Composer.
+
+Depending on the installed version, the release package may include Composer-managed packages such as:
+
+```text
+vendor/chillerlan/php-qrcode
+vendor/chillerlan/php-settings-container
+vendor/composer
+```
+
+These packages keep their own license files and metadata inside the `vendor/` directory. Do not remove these license files when creating or redistributing a release package.
+
+The QR code displayed on the computer page is generated through:
+
+```text
+chillerlan/php-qrcode
+```
+
+### jsQR
+
+The phone-side QR scanner uses `jsQR`.
+
+Location:
+
+```text
+assets/vendor/jsqr/
+```
+
+`jsQR` is licensed separately under the Apache License 2.0.
+
+See:
+
+```text
+assets/vendor/jsqr/LICENSE
+```
+
+### Release packages
+
+The normal source repository may exclude the `vendor/` directory.
+
+Prepared release ZIP files for users without Composer may include `vendor/` so the project can be uploaded directly to a webspace. In that case, the third-party license files inside `vendor/` must stay included.
 
 ---
 
