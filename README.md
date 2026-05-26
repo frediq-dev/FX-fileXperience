@@ -6,7 +6,7 @@ FX - fileXperience is a small self-hosted PHP tool that lets you transfer a file
 
 You open the tool on your computer, scan a QR code with your phone, upload a file, and download it on your computer. After the download, the file and token are deleted automatically.
 
-No database is required.
+No database is required. Works on shared hosting!
 
 ---
 
@@ -25,6 +25,7 @@ No database is required.
 - Local QR scanner library, no external CDN required
 - Apache / LiteSpeed `.htaccess` protection
 - Example Nginx configuration included
+- Works on shared hosting
 - MIT licensed project code
 
 ---
@@ -174,7 +175,7 @@ Your server does not need Composer in this case.
 
 For users without Composer, the easiest option is a release ZIP that already contains all required dependencies.
 
-A release package should include:
+A release package should include the folder:
 
 ```text
 vendor/
@@ -186,30 +187,6 @@ Then installation is simply:
 2. Extract it.
 3. Upload all files to your webspace.
 4. Open the URL and complete setup.
-
----
-
-## Release packages
-
-The GitHub repository usually does not include the `vendor/` directory.
-
-For end users who cannot run Composer, provide a separate release ZIP that already includes:
-
-```text
-vendor/
-```
-
-Do not include private runtime files in a release package, such as:
-
-```text
-config.inc.php
-tokens.json with real token data
-uploaded files
-cleanup.log
-.git/
-```
-
-You may include an empty `tokens.json`, or omit it if your installation handles a missing token file correctly.
 
 ---
 
@@ -436,7 +413,7 @@ It is protected by the token.
 
 After the download:
 
-- the file is deleted
+- the uploaded file is deleted
 - the token is deleted
 - a new QR session is created
 
@@ -664,23 +641,6 @@ nginx.example.conf
 ```
 
 Review and adapt it to your server setup.
-
----
-
-## Repository notes
-
-Do not commit private runtime files such as:
-
-```text
-config.inc.php
-tokens.json
-uploads/*
-cleanup.log
-```
-
-The `vendor/` directory is usually not committed to the repository.
-
-For end users without Composer, provide a separate release ZIP that includes `vendor/`.
 
 ---
 
