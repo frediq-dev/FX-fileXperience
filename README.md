@@ -1,609 +1,914 @@
-# ◈ FX - fileXperience
+# FX - fileXperience
 
-**FX - fileXperience** ist ein kleines PHP-Tool, mit dem du schnell eine Datei vom Smartphone auf einen PC übertragen kannst.
-Der PC zeigt einen QR-Code an, das Smartphone scannt ihn, lädt die Datei hoch und der PC bekommt sofort einen Download-Button.
+**Fast phone-to-computer file transfer via QR code — without a cloud account.**
 
-Das Ganze funktioniert ohne Cloud-Konto, ohne Benutzerverwaltung und ohne dauerhafte Dateiablage.
+FX - fileXperience is a small self-hosted PHP tool that lets you transfer a file from your phone to your computer quickly:
 
----
+1. Open FX - fileXperience on your computer.
+2. Scan the QR code with your phone.
+3. Upload a file from your phone.
+4. Download it on your computer.
+5. The file and token are deleted automatically.
 
-## Was macht FX - fileXperience?
-
-Typischer Ablauf:
-
-1. Du öffnest FX - fileXperience am PC.
-2. Die Seite erzeugt einen kurzlebigen Einmal-Token.
-3. Aus diesem Token wird ein QR-Code erzeugt.
-4. Du scannst den QR-Code mit dem Smartphone.
-5. Das Smartphone öffnet die Upload-Seite.
-6. Du wählst eine Datei aus und lädst sie hoch.
-7. Der PC erkennt den Upload automatisch.
-8. Der alte QR-Code verschwindet, weil der Token nicht mehr für einen neuen Upload gedacht ist.
-9. Du lädst die Datei am PC herunter.
-10. Nach dem Download werden Datei und Token gelöscht.
-11. Danach startet automatisch eine neue Session mit neuem QR-Code.
+The project is designed for simple web hosting environments and does not require a database.
 
 ---
 
-## Wofür ist das gedacht?
+## Features
 
-FX - fileXperience ist praktisch, wenn du schnell etwas vom Handy auf den Rechner bekommen möchtest, zum Beispiel:
-
-- Fotos
-- Screenshots
-- PDFs
-- kurze Videos
-- Dokumente
-- Dateien aus Messenger-Apps oder E-Mail-Anhängen
-
-Es ist **kein Cloud-Speicher**, kein Dateiarchiv und keine dauerhafte Upload-Plattform.
-Die Dateien sind nur kurzfristig vorhanden und werden nach dem Download oder durch den Cron-Cleanup wieder entfernt.
-
----
-
-## Voraussetzungen
-
-Du brauchst:
-
-- Webspace oder Server mit PHP 8.0 oder neuer
-- Schreibrechte für den Ordner `uploads/`
-- Composer oder alternativ eine Composer-freie Installation über vorbereitete Dateien
-- einen Cronjob oder Web-Cron-Dienst für die automatische Bereinigung
-
-Optional, aber empfohlen:
-
-- HTTPS
-- Apache/LiteSpeed mit `.htaccess` oder eine passende Nginx-Konfiguration
+- QR-code based file transfer
+- No user cloud account required
+- Short-lived one-time upload tokens
+- Automatic deletion after download
+- Automatic new QR/session after download
+- Cron cleanup for abandoned uploads
+- Optional password protection
+- Optional IP / DNS whitelist
+- Setup wizard on first launch
+- Local language file for interface texts
+- Local QR scanner library, no external CDN required
+- Apache / LiteSpeed `.htaccess` protection
+- Example Nginx configuration included
+- MIT licensed project code
 
 ---
 
-## Schnellstart mit Composer
+## Typical use case
 
-Diese Variante ist die einfachste, wenn Composer auf deinem Webspace oder Server verfügbar ist.
+You are working on your computer and need a photo, PDF, screenshot or video from your phone.
 
-### 1. Dateien hochladen
+Instead of sending it through email, messenger apps or cloud storage:
 
-Lade alle Projektdateien in ein Verzeichnis auf deinem Webspace, zum Beispiel:
+1. Open FX - fileXperience on your computer.
+2. Scan the displayed QR code with your phone.
+3. Select the file on your phone.
+4. Download it on your computer.
+
+After the download, the file is removed from the server and a new QR session can be created automatically.
+
+---
+
+## How it works
+
+```text
+Computer opens index.php
+        ↓
+A short-lived token is created
+        ↓
+A QR code containing upload.php?token=... is shown
+        ↓
+Phone scans the QR code
+        ↓
+Phone uploads a file using the token
+        ↓
+Computer detects the upload via polling
+        ↓
+Old QR code disappears
+        ↓
+Computer downloads the file
+        ↓
+File and token are deleted
+        ↓
+A new QR code/session is created
+```
+
+---
+
+## Requirements
+
+- PHP 8.0 or newer
+- Composer, or a prepared `vendor/` folder
+- Webspace with PHP support
+- Write permissions for:
+  - `uploads/`
+  - `tokens.json`
+  - the project directory during first setup, so `config.inc.php` can be created
+- HTTPS is strongly recommended, especially for camera access and password-protected usage
+
+---
+
+## Installation with Composer
+
+This is the recommended installation method if you have SSH or terminal access on your server.
+
+### 1. Upload the project
+
+Upload all project files to a directory on your webspace, for example:
 
 ```text
 /fx-filexperience/
 ```
 
-Die URL könnte dann zum Beispiel so aussehen:
-
-```text
-https://example.com/fx-filexperience/
-```
-
-### 2. Composer ausführen
-
-Wechsle per SSH in den Projektordner:
-
-```bash
-cd /pfad/zu/fx-filexperience
-composer install
-```
-
-Composer lädt die PHP-Abhängigkeit für die QR-Code-Erzeugung herunter und legt den Ordner `vendor/` an.
-
-### 3. Upload-Ordner beschreibbar machen
-
-```bash
-chmod 755 uploads/
-```
-
-Falls dein Hoster restriktiver arbeitet, kann auch `775` nötig sein. `777` solltest du nur verwenden, wenn dein Hoster es ausdrücklich verlangt und du keine andere Möglichkeit hast.
-
-### 4. Setup im Browser starten
-
-Öffne im Browser:
-
-```text
-https://example.com/fx-filexperience/index.php
-```
-
-Beim ersten Aufruf startet der Setup-Assistent.
-
-Im Setup legst du fest:
-
-- `BASE_URL`
-- `TOKEN_TTL`
-- `CRON_SECRET`
-- Sprache
-- optional Benutzer/Passwörter
-- optional IP-/DNS-Whitelist
-
-Nach dem Setup wird automatisch `config.inc.php` erzeugt.
-
----
-
-## Installation ohne Composer auf dem Webspace
-
-Viele günstige Webspace-Pakete haben keinen SSH-Zugang oder erlauben Composer nicht direkt auf dem Server.
-Das ist kein Problem. Du kannst Composer auf einem anderen Rechner ausführen und danach den fertigen Ordner hochladen.
-
-### Variante A: Composer lokal auf deinem PC ausführen
-
-Diese Variante ist meistens am saubersten.
-
-#### 1. Projekt lokal entpacken
-
-Entpacke das Projekt auf deinem PC, zum Beispiel nach:
-
-```text
-C:\Projekte\fx-filexperience
-```
-
-oder unter macOS/Linux:
-
-```text
-~/Projekte/fx-filexperience
-```
-
-#### 2. Composer lokal installieren
-
-Falls Composer auf deinem PC noch nicht installiert ist, installiere ihn von der offiziellen Composer-Webseite.
-
-Danach im Projektordner ausführen:
-
-```bash
-composer install --no-dev
-```
-
-Dadurch entsteht lokal der Ordner:
-
-```text
-vendor/
-```
-
-#### 3. Alles per FTP/SFTP hochladen
-
-Lade anschließend den gesamten Projektordner auf deinen Webspace hoch, inklusive:
-
-```text
-vendor/
-assets/
-uploads/
-index.php
-upload.php
-poll.php
-download.php
-cron.php
-config.php
-auth.php
-tokens.php
-lang.php
-```
-
-Wichtig: Der Ordner `vendor/` muss mit hochgeladen werden, sonst kann `index.php` keinen QR-Code erzeugen.
-
-#### 4. Setup im Browser ausführen
-
-Rufe danach wie gewohnt auf:
-
-```text
-https://example.com/fx-filexperience/index.php
-```
-
-### Variante B: Fertiges Release-Paket verwenden
-
-Wenn du ein Release-Paket verwendest, in dem der Ordner `vendor/` bereits enthalten ist, brauchst du Composer gar nicht selbst auszuführen.
-
-Dann reicht:
-
-1. ZIP entpacken
-2. alle Dateien auf den Webspace laden
-3. `uploads/` beschreibbar machen
-4. `index.php` im Browser öffnen
-5. Setup ausfüllen
-
-Hinweis für GitHub: Der normale Quellcode eines Repositories enthält oft **nicht** den Ordner `vendor/`. Für Nutzer ohne Composer ist deshalb ein zusätzliches Release-ZIP mit bereits installierten Abhängigkeiten hilfreich.
-
-### Variante C: Composer auf einem anderen Server ausführen
-
-Du kannst Composer auch auf einem anderen Server oder in einer lokalen Entwicklungsumgebung ausführen und danach nur das Ergebnis hochladen.
-
-Wichtig ist nur: Am Ende muss der Ordner `vendor/` auf deinem Webspace liegen.
-
----
-
-## Setup-Assistent
-
-Beim ersten Aufruf von `index.php` erscheint der Setup-Assistent.
-
-Die dort gemachten Angaben werden gespeichert in:
-
-```text
-config.inc.php
-```
-
-Diese Datei wird automatisch erzeugt und sollte **nicht öffentlich zugänglich** sein.
-Die mitgelieferten Apache-/LiteSpeed-Regeln schützen diese Datei über `.htaccess`.
-Für Nginx musst du die Regeln aus `nginx.example.conf` in deine Serverkonfiguration übernehmen.
-
-### BASE_URL
-
-`BASE_URL` ist die vollständige URL zum Projektordner, ohne Slash am Ende.
-
-Beispiel:
+Example public URL:
 
 ```text
 https://example.com/fx-filexperience
 ```
 
-Diese URL ist wichtig, weil sie für QR-Code, Upload, Polling und Download verwendet wird.
+### 2. Install dependencies
 
-### TOKEN_TTL
+Run Composer in the project directory:
 
-`TOKEN_TTL` legt fest, wie lange ein QR-Code bzw. Upload-Token gültig ist.
+```bash
+cd /path/to/fx-filexperience
+composer install
+```
 
-Beispiel:
+Composer installs the QR code generation library into the `vendor/` directory.
+
+### 3. Make uploads writable
+
+The `uploads/` directory must be writable by PHP.
+
+Example:
+
+```bash
+chmod 755 uploads
+```
+
+Depending on your hosting provider, different permissions may be required.
+
+### 4. Open the setup wizard
+
+Open the project URL in your browser:
+
+```text
+https://example.com/fx-filexperience
+```
+
+The setup wizard appears automatically if `config.inc.php` does not exist yet.
+
+During setup you can configure:
+
+- Base URL
+- Token lifetime
+- Cron secret
+- Interface language
+- Password users
+- Optional IP / DNS whitelist
+
+After setup, the configuration is written to:
+
+```text
+config.inc.php
+```
+
+---
+
+## Installation without Composer on the webspace
+
+Some hosting providers do not allow Composer on the server. That is not a problem.
+
+You have three options.
+
+---
+
+### Option A: Run Composer locally and upload `vendor/`
+
+If you have Composer installed on your own computer:
+
+1. Download or clone the project to your computer.
+2. Open a terminal in the project folder.
+3. Run:
+
+```bash
+composer install
+```
+
+4. Upload the complete project folder to your webspace, including:
+
+```text
+vendor/
+```
+
+Your server does not need Composer in this case.
+
+---
+
+### Option B: Use a prepared release package
+
+For users without Composer, the easiest option is a release ZIP that already contains all required dependencies.
+
+A release package should include:
+
+```text
+vendor/
+```
+
+Then installation is simply:
+
+1. Download the release ZIP.
+2. Extract it.
+3. Upload all files to your webspace.
+4. Open the URL and complete setup.
+
+---
+
+### Option C: Install dependencies elsewhere
+
+You can also run Composer on another system, for example:
+
+- local computer
+- development server
+- staging server
+- temporary PHP environment
+
+Then upload the generated `vendor/` directory together with the project files.
+
+---
+
+## First setup
+
+When FX - fileXperience is opened for the first time, it starts a setup wizard.
+
+The setup stores your configuration in:
+
+```text
+config.inc.php
+```
+
+This file contains:
+
+- `BASE_URL`
+- `TOKEN_TTL`
+- `CRON_SECRET`
+- `APP_LANGUAGE`
+- password hashes
+- whitelist entries
+
+Do not commit or publish `config.inc.php`.
+
+---
+
+## Base URL
+
+The Base URL is the public URL of your installation without a trailing slash.
+
+Example:
+
+```text
+https://example.com/fx-filexperience
+```
+
+Do not use:
+
+```text
+https://example.com/fx-filexperience/
+```
+
+The Base URL is used to generate QR codes and internal requests.
+
+---
+
+## Token lifetime
+
+The token lifetime controls how long a QR upload link remains valid.
+
+Example:
 
 ```text
 300
 ```
 
-Das bedeutet: 300 Sekunden, also 5 Minuten.
-
-### CRON_SECRET
-
-`CRON_SECRET` schützt den Web-Aufruf von `cron.php`.
-
-Beispiel:
+means:
 
 ```text
-meine-lange-zufaellige-geheime-zeichenfolge
+300 seconds = 5 minutes
 ```
 
-Der Cronjob wird dann so aufgerufen:
+After the token expires, the QR link can no longer be used.
+
+The cleanup cron also uses this value to remove expired tokens and abandoned files.
+
+---
+
+## Cron secret
+
+The cron secret protects the cleanup URL.
+
+Example:
 
 ```text
-https://example.com/fx-filexperience/cron.php?secret=meine-lange-zufaellige-geheime-zeichenfolge
+my-very-secret-cleanup-key
+```
+
+The cleanup URL then looks like this:
+
+```text
+https://example.com/fx-filexperience/cron.php?secret=my-very-secret-cleanup-key
+```
+
+Choose a long random value.
+
+---
+
+## Cron cleanup
+
+The cron job removes:
+
+- expired tokens
+- uploaded files whose token is no longer active
+- abandoned files that were never downloaded
+
+The cron uses `TOKEN_TTL`.
+
+It does not shorten the token lifetime. It only checks regularly whether expired data should be removed.
+
+---
+
+## Recommended cron interval
+
+A cron interval of 2 to 5 minutes is fine.
+
+Example for every 2 minutes:
+
+```cron
+*/2 * * * * curl -s "https://example.com/fx-filexperience/cron.php?secret=YOUR_SECRET" > /dev/null
+```
+
+Example for every 5 minutes:
+
+```cron
+*/5 * * * * curl -s "https://example.com/fx-filexperience/cron.php?secret=YOUR_SECRET" > /dev/null
+```
+
+If `TOKEN_TTL` is 300 seconds and the cron runs every 2 minutes, abandoned files may remain for up to about 7 minutes.
+
+That is expected:
+
+```text
+token lifetime + cron interval
 ```
 
 ---
 
-## Zugriffskonzept
+## Shell cron
 
-FX - fileXperience unterscheidet zwischen zwei Dingen:
+If your hosting provider gives you shell cron access, you can call the script directly:
 
-1. Wer darf am PC neue QR-Sessions erzeugen?
-2. Wer darf mit einem gültigen QR-Token eine Datei hochladen?
+```cron
+*/2 * * * * php /path/to/fx-filexperience/cron.php cli
+```
+
+This avoids an HTTP request.
+
+---
+
+## Cron without hosting cron support
+
+Some shared hosting providers do not allow cron jobs.
+
+In that case, you can use an external web cron service such as:
+
+```text
+https://cron-job.org
+```
+
+Create a cron job there that calls:
+
+```text
+https://example.com/fx-filexperience/cron.php?secret=YOUR_SECRET
+```
+
+Recommended interval:
+
+```text
+every 2 to 5 minutes
+```
+
+Make sure your `CRON_SECRET` is strong and not easy to guess.
+
+---
+
+## Access model
+
+FX - fileXperience separates two things:
+
+1. Who may create new QR upload sessions
+2. Who may use an already created QR upload link
+
+This is important because your computer may be on a trusted network, while your phone may use mobile data.
+
+---
+
+### Access to `index.php`
+
+`index.php` is the main page where new QR sessions are created.
+
+This page is protected by the setup access rules.
+
+| Passwords | Whitelist | Result |
+|---|---|---|
+| yes | no | Everyone with the URL sees a login form |
+| yes | yes | Whitelisted clients skip login, others need a password |
+| no | no | Public mode: anyone with the URL can create sessions |
+| no | yes | Only whitelisted clients can create sessions |
+
+---
+
+### Access to `upload.php`
+
+`upload.php` is accessed by the phone through a QR code.
+
+It is protected by the short-lived token.
+
+The phone does not need to be on the same IP address or network as the computer.
+
+This allows the common workflow:
+
+```text
+Computer in office/home network
+Phone on mobile data
+QR scan still works
+```
+
+---
+
+### Access to `poll.php`
+
+`poll.php` is used by the computer page to detect whether a file has been uploaded.
+
+It is protected by the token.
+
+---
+
+### Access to `download.php`
+
+`download.php` is used to download the uploaded file.
+
+It is protected by the token.
+
+After the download:
+
+- the file is deleted
+- the token is deleted
+- a new QR session is created
+
+---
+
+## Public mode warning
+
+If you do not create a password and do not configure a whitelist, the installation is public.
+
+That means:
+
+```text
+Anyone who knows or finds the URL can create upload sessions.
+```
+
+Use public mode only if this is intended.
+
+For private use, configure at least one of the following:
+
+- password user
+- IP / DNS whitelist
+- both
+
+---
+
+## IP / DNS whitelist
+
+The whitelist can contain:
+
+- IPv4 addresses
+- IPv6 addresses
+- DNS hostnames
+
+Examples:
+
+```text
+203.0.113.10
+2001:db8::1
+vpn.example.com
+```
+
+A whitelisted client can access the main page without entering a password.
+
+If no password is configured but a whitelist exists, only whitelisted clients may create new sessions.
+
+---
+
+## Security notes
+
+FX - fileXperience is designed for temporary file transfer.
+
+It is not intended as permanent cloud storage.
+
+Security features include:
+
+- short-lived random tokens
+- token deletion after download
+- file deletion after download
+- cron cleanup for abandoned uploads
+- blocked dangerous file extensions
+- protected upload directory
+- optional password protection
+- optional IP / DNS whitelist
+- local token file locking
+- no database required
+
+Still, you should:
+
+- use HTTPS
+- use a strong cron secret
+- keep your installation private if possible
+- avoid very long token lifetimes
+- do not publish `config.inc.php`
+- do not publish `tokens.json`
+- do not publish uploaded files
+
+---
+
+## Blocked file extensions
+
+Dangerous file types are blocked by extension.
+
+Examples include:
+
+```text
+php, phtml, phar, exe, bat, cmd, ps1, sh, py, rb, jar, dll, docm, xlsm
+```
+
+This reduces the risk of executable files being uploaded.
+
+The upload directory should still remain protected by server configuration.
+
+---
+
+## File structure
+
+Typical project structure:
+
+```text
+fx-filexperience/
+├── assets/
+│   ├── css/
+│   │   └── app.css
+│   └── vendor/
+│       └── jsqr/
+│           ├── jsQR.js
+│           └── LICENSE
+├── uploads/
+│   └── .htaccess
+├── .gitignore
+├── .htaccess
+├── auth.php
+├── composer.json
+├── config.php
+├── cron.php
+├── download.php
+├── index.php
+├── lang.php
+├── LICENSE
+├── nginx.example.conf
+├── poll.php
+├── README.md
+├── tokens.json
+├── tokens.php
+└── upload.php
+```
+
+After setup, this file is created:
+
+```text
+config.inc.php
+```
+
+After Composer installation, this directory is created:
+
+```text
+vendor/
+```
+
+---
+
+## Important files
 
 ### `index.php`
 
-`index.php` ist die PC-Seite. Hier entstehen neue QR-Codes.
-Diese Seite wird durch Passwort, Whitelist oder bewusst öffentlichen Betrieb geschützt.
+Main computer page.
 
-### `upload.php`, `poll.php`, `download.php`
+Creates QR sessions and waits for uploads.
 
-Diese Dateien werden über den kurzlebigen Token geschützt.
-Sie werden **nicht zusätzlich über die IP-/DNS-Whitelist blockiert**.
+### `upload.php`
 
-Das ist Absicht.
+Phone upload page.
 
-Beispiel: Dein PC ist im Büro-WLAN und darf über die Whitelist neue QR-Codes erzeugen. Dein Smartphone ist aber gerade im Mobilfunknetz. Wenn `upload.php` ebenfalls hart auf die Whitelist prüfen würde, könnte dein Smartphone die Datei nicht hochladen.
+Receives files through a valid token.
 
-Darum gilt:
+### `poll.php`
+
+Long-polling endpoint.
+
+The computer page uses it to detect whether a file is ready.
+
+### `download.php`
+
+Downloads the uploaded file.
+
+Deletes the file and token after delivery.
+
+### `cron.php`
+
+Cleanup script.
+
+Deletes expired tokens and abandoned files.
+
+### `config.php`
+
+Base configuration and default constants.
+
+### `config.inc.php`
+
+Generated setup configuration.
+
+Do not commit this file.
+
+### `lang.php`
+
+Language texts.
+
+Contains arrays for supported languages, for example:
 
 ```text
-Whitelist schützt das Erzeugen neuer QR-Codes.
-Der QR-Link selbst wird über den kurzlebigen Einmal-Token geschützt.
+en
+de
 ```
 
-### Mögliche Setup-Varianten
+Each language contains a `language` key.
 
-| Passwörter | Whitelist | Ergebnis |
-|---|---|---|
-| ja | nein | Jeder mit URL sieht Login und braucht ein Passwort. |
-| ja | ja | Whitelist-Nutzer kommen direkt rein, alle anderen brauchen ein Passwort. |
-| nein | nein | Die Installation ist bewusst öffentlich nutzbar. |
-| nein | ja | Nur Whitelist-Nutzer dürfen neue QR-Sessions erzeugen. |
+Example concept:
 
-Wichtig: Wenn du **kein Passwort** und **keine Whitelist** einrichtest, kann jeder, der die URL kennt oder findet, FX - fileXperience benutzen.
+```text
+en.language = English
+de.language = Deutsch
+```
+
+Text keys are structured by area, such as:
+
+```text
+setup.title
+upload.subtitle
+main.waiting
+```
+
+### `tokens.php`
+
+Token management.
+
+Handles loading, saving, validating and deleting tokens.
+
+### `tokens.json`
+
+Token storage file.
+
+Do not publish real token data.
+
+### `assets/css/app.css`
+
+Main stylesheet.
+
+### `assets/vendor/jsqr/`
+
+Local QR scanning library for the phone-side QR scanner.
 
 ---
 
-## Cronjob einrichten
+## Apache / LiteSpeed
 
-Der Cronjob löscht:
+The project includes `.htaccess` files for Apache and LiteSpeed.
 
-- abgelaufene Tokens aus `tokens.json`
-- hochgeladene Dateien, die nicht mehr zu einem aktiven Token gehören
-- verwaiste Upload-Dateien
-
-Der Cronjob verwendet ausschließlich `TOKEN_TTL`.
-Es gibt keinen separaten Cron-TTL-Wert.
-
-### Empfohlenes Intervall
-
-Ein Aufruf alle 2 bis 5 Minuten ist sinnvoll.
-
-Beispiel:
-
-```text
-TOKEN_TTL = 300 Sekunden
-Cronjob alle 2 Minuten
-```
-
-Dann ist ein Token 5 Minuten gültig, und abgelaufene Dateien werden spätestens ungefähr nach 5 bis 7 Minuten bereinigt.
-
-### Variante A: Shell-Cronjob
-
-Wenn du SSH oder echten Cronzugriff hast:
-
-```cron
-*/2 * * * * php /pfad/zu/fx-filexperience/cron.php cli
-```
-
-Oder alle 5 Minuten:
-
-```cron
-*/5 * * * * php /pfad/zu/fx-filexperience/cron.php cli
-```
-
-### Variante B: URL-Cronjob beim Hoster
-
-Viele Webhoster bieten im Kundenmenü sogenannte URL-Cronjobs oder Web-Cronjobs an.
-
-Dann trägst du diese URL ein:
-
-```text
-https://example.com/fx-filexperience/cron.php?secret=DEIN_CRON_SECRET
-```
-
-Intervall zum Beispiel:
-
-```text
-alle 2 Minuten
-```
-
-### Variante C: cron-job.org verwenden
-
-Wenn dein Webspace-Anbieter keine Cronjobs erlaubt, kannst du einen externen Web-Cron-Dienst verwenden, zum Beispiel **cron-job.org**.
-Der Dienst bietet kostenlose Web-Cronjobs an und kann URLs zeitgesteuert aufrufen. Die offizielle Seite beschreibt Ausführungen von minütlich bis jährlich. 
-
-Grundidee:
-
-1. Konto bei cron-job.org erstellen.
-2. Neuen Cronjob anlegen.
-3. Als URL eintragen:
-
-```text
-https://example.com/fx-filexperience/cron.php?secret=DEIN_CRON_SECRET
-```
-
-4. HTTP-Methode: `GET`
-5. Intervall: zum Beispiel alle 2 oder 5 Minuten
-6. Speichern und testen
-
-Wenn der Cronjob erfolgreich läuft, sollte `cron.php` eine kurze Textausgabe mit der Anzahl gelöschter Tokens und Dateien zurückgeben.
-
----
-
-## Webserver-Schutz
-
-### Apache und LiteSpeed
-
-Apache und LiteSpeed lesen `.htaccess`-Dateien.
-Das Projekt enthält bereits passende Regeln für:
-
-- Apache 2.4+
-- Apache 2.2-Fallback
-- LiteSpeed
-
-Geschützt werden unter anderem:
+They protect sensitive files such as:
 
 ```text
 config.php
 config.inc.php
-auth.php
-tokens.php
 tokens.json
+tokens.php
+auth.php
 lang.php
 composer.json
 composer.lock
-uploads/
 ```
 
-### Nginx
+The `uploads/` directory also contains a `.htaccess` file to prevent direct access to uploaded files.
 
-Nginx ignoriert `.htaccess` vollständig.
-Wenn du Nginx verwendest, musst du die Regeln aus folgender Datei in deine Serverkonfiguration übernehmen:
+---
+
+## Nginx
+
+Nginx does not use `.htaccess`.
+
+If you run FX - fileXperience on Nginx, you must add equivalent deny rules to your server configuration.
+
+An example file is included:
 
 ```text
 nginx.example.conf
 ```
 
-Danach Nginx-Konfiguration testen und neu laden.
-
-Beispiel:
-
-```bash
-nginx -t
-systemctl reload nginx
-```
+Review and adapt it to your server setup.
 
 ---
 
-## Ordnerstruktur
+## GitHub usage
 
-```text
-fx-filexperience/
-├── index.php              # Setup, Login und PC-Hauptseite
-├── upload.php             # Smartphone-Upload und QR-Scanner
-├── poll.php               # Long-Polling-Endpunkt
-├── download.php           # Download und sofortige Löschung
-├── cron.php               # Cleanup-Script
-├── config.php             # Basis-Konfiguration und Hilfsfunktionen
-├── config.inc.php         # Wird vom Setup erzeugt, nicht committen
-├── lang.php               # Sprachdatei
-├── auth.php               # Authentifizierung und Setup-Logik
-├── tokens.php             # Token-Speicher mit flock()
-├── tokens.json            # Temporäre Token-Datenbank
-├── composer.json
-├── LICENSE                # MIT-Lizenz für dieses Projekt
-├── .htaccess              # Apache-/LiteSpeed-Schutzregeln
-├── nginx.example.conf     # Beispielregeln für Nginx
-├── assets/
-│   ├── css/
-│   │   └── app.css        # Zentrale CSS-Datei
-│   └── vendor/
-│       └── jsqr/
-│           ├── jsQR.js    # Lokale QR-Scanner-Bibliothek
-│           └── LICENSE    # Apache-2.0-Lizenz für jsQR
-├── uploads/
-│   └── .htaccess          # Blockiert direkten Zugriff auf Uploads
-└── vendor/                # Wird von Composer erzeugt
-```
+Do not commit private runtime files.
 
----
-
-## Sprachdatei
-
-Alle sichtbaren Texte liegen in:
-
-```text
-lang.php
-```
-
-Jede Sprache hat einen eigenen Array-Bereich, zum Beispiel:
-
-```php
-'en' => [
-    'language' => 'English',
-    'setup' => [
-        'title' => 'Setup',
-    ],
-]
-```
-
-Der Key `language` enthält den Namen der Sprache.
-
-Texte können so gelesen werden:
-
-```php
-app_text('setup.title')
-```
-
-Oder mit expliziter Sprache:
-
-```php
-app_text('de.setup.title')
-```
-
-Dadurch kann das Projekt später einfach um weitere Sprachen erweitert werden.
-
----
-
-## Sicherheitshinweise
-
-FX - fileXperience ist bewusst klein und einfach gehalten, enthält aber mehrere Schutzmechanismen:
-
-- Tokens werden mit `random_bytes()` erzeugt.
-- Tokens sind nur kurz gültig.
-- Dateien werden nach dem Download gelöscht.
-- Der Cronjob entfernt abgelaufene Tokens und alte Dateien.
-- Gefährliche Dateiendungen werden blockiert.
-- `tokens.json` wird mit `flock()` gegen gleichzeitige Schreibzugriffe geschützt.
-- Passwörter werden als bcrypt-Hashes gespeichert.
-- `config.inc.php` enthält sensible Setup-Daten und wird durch Webserver-Regeln geschützt.
-- Die Upload-Dateien sind nicht direkt öffentlich abrufbar.
-
-Trotzdem gilt:
-
-- Verwende HTTPS.
-- Wähle ein langes `CRON_SECRET`.
-- Nutze Passwortschutz oder Whitelist, wenn die Installation nicht öffentlich sein soll.
-- Prüfe bei Nginx unbedingt die Serverkonfiguration.
-- Lade `config.inc.php` nicht in ein öffentliches GitHub-Repository hoch.
-
----
-
-## Dateien, die nicht ins GitHub-Repository gehören
-
-Diese Dateien entstehen lokal oder enthalten installationsspezifische Daten:
+Your `.gitignore` should exclude at least:
 
 ```text
 config.inc.php
+tokens.json
 vendor/
-tokens.json mit echten Tokens
 uploads/*
+cleanup.log
 ```
 
-`tokes.json` kann im Repository leer oder mit `{}` vorhanden sein, sollte aber keine echten aktiven Tokens enthalten.
+Usually you should keep this file:
+
+```text
+uploads/.htaccess
+```
+
+but ignore uploaded files inside the directory.
+
+A typical GitHub repository should include:
+
+```text
+README.md
+LICENSE
+composer.json
+index.php
+upload.php
+download.php
+poll.php
+cron.php
+config.php
+auth.php
+tokens.php
+lang.php
+assets/
+nginx.example.conf
+```
 
 ---
 
-## Häufige Probleme
+## Composer dependency
 
-### Der QR-Code erscheint nicht
+The project uses Composer for PHP dependencies.
 
-Wahrscheinlich fehlt der Ordner `vendor/`.
+The QR code displayed on the computer side is generated by:
 
-Lösung:
+```text
+chillerlan/php-qrcode
+```
+
+Install it with:
 
 ```bash
-composer install --no-dev
+composer install
 ```
 
-Oder ein Release-Paket verwenden, das `vendor/` bereits enthält.
-
-### Der Upload funktioniert, aber der PC zeigt nichts an
-
-Prüfe:
-
-- Ist `BASE_URL` korrekt?
-- Ist `TOKEN_TTL` lang genug?
-- Funktioniert `poll.php`?
-- Gibt es JavaScript-Fehler im Browser?
-
-### Dateien bleiben im Upload-Ordner liegen
-
-Prüfe:
-
-- Läuft der Cronjob?
-- Stimmt `CRON_SECRET`?
-- Ist `uploads/` beschreibbar?
-- Ist `TOKEN_TTL` korrekt gesetzt?
-
-### Ich bekomme 403-Fehler
-
-Mögliche Ursachen:
-
-- `.htaccess` blockiert absichtlich sensible Dateien.
-- Die Whitelist erlaubt deinen Anschluss nicht.
-- Bei Nginx wurden die Beispielregeln falsch übernommen.
-- Der Token ist abgelaufen.
+If you cannot run Composer on your server, install dependencies elsewhere and upload the generated `vendor/` directory.
 
 ---
 
-## Drittanbieter-Bibliotheken
+## Third-party libraries
 
 ### jsQR
 
-Dieses Projekt enthält `jsQR` lokal, damit der QR-Scanner ohne CDN und ohne externe Netzwerkanfrage funktioniert.
+This project includes `jsQR` for QR scanning on the phone upload page.
 
-- Projekt: jsQR
-- Autor: Cosmo Wolfe
-- Lizenz: Apache-2.0
-- Lizenzdatei: `assets/vendor/jsqr/LICENSE`
+Location:
+
+```text
+assets/vendor/jsqr/
+```
+
+`jsQR` is licensed separately under the Apache License 2.0.
+
+See:
+
+```text
+assets/vendor/jsqr/LICENSE
+```
 
 ### chillerlan/php-qrcode
 
-Für die QR-Code-Erzeugung auf der PC-Seite wird `chillerlan/php-qrcode` über Composer verwendet.
-Die Lizenzinformationen dieser Bibliothek werden über Composer bzw. den Ordner `vendor/` bereitgestellt.
+This project uses `chillerlan/php-qrcode` through Composer for QR code generation.
+
+See the package license information in Composer metadata.
 
 ---
 
-## Lizenz
+## Troubleshooting
 
-FX - fileXperience steht unter der MIT-Lizenz.
+### The QR code does not appear
 
-Siehe:
+Check that Composer dependencies are installed:
+
+```bash
+composer install
+```
+
+Also check that the `vendor/` directory exists.
+
+---
+
+### The QR scanner opens but does not scan
+
+Make sure the project includes:
+
+```text
+assets/vendor/jsqr/jsQR.js
+```
+
+Also use HTTPS if possible. Some browsers restrict camera access on non-HTTPS pages.
+
+---
+
+### Upload fails
+
+Check:
+
+- `uploads/` exists
+- `uploads/` is writable by PHP
+- file size is below the configured limit
+- file extension is not blocked
+- token is still valid
+
+---
+
+### Download says token expired
+
+The token lifetime may be too short.
+
+Increase `TOKEN_TTL` in setup or recreate the session.
+
+---
+
+### Cron does not clean up files
+
+Check:
+
+- cron URL is correct
+- cron secret is correct
+- `cron.php` is reachable by the cron service
+- `uploads/` is writable
+- `tokens.json` is writable
+
+---
+
+### I get “Forbidden” when calling cron
+
+The `secret` parameter is missing or incorrect.
+
+Correct format:
+
+```text
+https://example.com/fx-filexperience/cron.php?secret=YOUR_SECRET
+```
+
+---
+
+### GitHub Desktop says the folder is not a Git repository
+
+Create or add the folder as a repository in GitHub Desktop.
+
+The project folder should contain:
+
+```text
+README.md
+LICENSE
+index.php
+upload.php
+```
+
+Then create the initial commit and publish it to GitHub.
+
+---
+
+## Disclaimer
+
+FX - fileXperience is a small self-hosted file transfer tool. It is provided as-is, without warranty of any kind.
+
+Please make sure you understand your hosting environment, access settings and server configuration before using it publicly. The project authors are not responsible for misconfiguration, unauthorized access, data loss or other issues caused by installation or usage.
+
+The project authors are also not responsible for the existence, availability, legality, type, content or consequences of any files transferred through an installation of this software. Responsibility for transferred files remains entirely with the person or organization operating and using the installation.
+
+Avoid using it for highly sensitive or business-critical files unless you have reviewed and secured your setup properly.
+
+---
+
+## License
+
+The project code is licensed under the MIT License.
+
+See:
 
 ```text
 LICENSE
 ```
 
-Drittanbieter-Bibliotheken behalten ihre eigenen Lizenzen.
+Third-party libraries keep their own licenses.
