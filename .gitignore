@@ -1,0 +1,4 @@
+/vendor/
+/config.inc.php
+/uploads/*
+!/uploads/.htaccess

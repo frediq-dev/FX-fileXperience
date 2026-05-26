@@ -1,0 +1,29 @@
+# FX - fileXperience
+# Apache / LiteSpeed protection rules
+#
+# Note: Nginx does not read .htaccess files.
+# Use nginx.example.conf as a reference for Nginx deployments.
+
+Options -Indexes
+
+# Deny direct web access to internal application files.
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(config\.php|config\.inc\.php|auth\.php|tokens\.php|tokens\.json|lang\.php|composer\.json|composer\.lock)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2 fallback
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^(config\.php|config\.inc\.php|auth\.php|tokens\.php|tokens\.json|lang\.php|composer\.json|composer\.lock)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Never execute PHP files from assets or uploads if the hosting setup allows them there.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(assets|uploads)/.*\.(php|php[0-9]?|phtml|phar)$ - [F,L,NC]
+</IfModule>
